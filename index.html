@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pro Portfolio App</title>
+<title>Portfolio App</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif}
@@ -28,17 +28,11 @@ section{padding:30px}
 .btn{background:#ff1a1a;border:none;padding:10px 15px;border-radius:20px;color:#fff;cursor:pointer}
 .btn:hover{opacity:0.8}
 
-/* Auth */
-.auth-box{max-width:300px;margin:auto;text-align:center}
-input{width:100%;padding:10px;margin:10px 0;background:#111;border:none;color:#fff}
-
 /* Projects */
 .projects{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px}
 .card{background:#111;padding:15px;border-radius:10px;transition:.3s}
 .card:hover{transform:scale(1.05);box-shadow:0 0 15px red}
 .card img{width:100%;border-radius:10px}
-
-.hidden{display:none}
 
 /* Modal */
 .modal{
@@ -46,6 +40,7 @@ input{width:100%;padding:10px;margin:10px 0;background:#111;border:none;color:#f
   background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center
 }
 .modal-content{background:#111;padding:20px;border-radius:10px;max-width:500px;width:90%}
+.hidden{display:none}
 
 </style>
 </head>
@@ -55,26 +50,17 @@ input{width:100%;padding:10px;margin:10px 0;background:#111;border:none;color:#f
   <h2>PortfolioX</h2>
   <a href="#" onclick="showPage('dashboard')">Dashboard</a>
   <a href="#" onclick="showPage('projects')">Projects</a>
-  <a href="#" onclick="logout()">Logout</a>
 </div>
 
 <div class="main">
 <header>
-  <h3 id="welcome"></h3>
+  <h3>My Portfolio</h3>
 </header>
 
-<!-- LOGIN -->
-<section id="loginPage" class="auth-box">
-  <h2>Login / Signup</h2>
-  <input id="username" placeholder="Username">
-  <input id="password" type="password" placeholder="Password">
-  <button class="btn" onclick="login()">Enter</button>
-</section>
-
 <!-- DASHBOARD -->
-<section id="dashboard" class="hidden">
-  <h2>Welcome Dashboard</h2>
-  <p>Your personal portfolio system</p>
+<section id="dashboard">
+  <h2>Welcome</h2>
+  <p>This is your personal portfolio system</p>
 </section>
 
 <!-- PROJECTS -->
@@ -92,30 +78,7 @@ input{width:100%;padding:10px;margin:10px 0;background:#111;border:none;color:#f
 </div>
 
 <script>
-let currentUser=null;
-let users=JSON.parse(localStorage.getItem('users')||'{}');
-
-function login(){
-  const u=username.value;
-  const p=password.value;
-
-  if(!users[u]) users[u]={password:p,projects:[]};
-  if(users[u].password!==p) return alert('Wrong password');
-
-  currentUser=u;
-  localStorage.setItem('users',JSON.stringify(users));
-  showApp();
-}
-
-function showApp(){
-  document.getElementById('loginPage').classList.add('hidden');
-  document.getElementById('dashboard').classList.remove('hidden');
-  document.getElementById('projects').classList.remove('hidden');
-  welcome.innerText='Hello '+currentUser;
-  render();
-}
-
-function logout(){location.reload()}
+let projects=JSON.parse(localStorage.getItem('projects')||'[]');
 
 function showPage(page){
   document.querySelectorAll('section').forEach(s=>s.classList.add('hidden'));
@@ -127,8 +90,8 @@ fileInput.onchange=e=>{
   [...e.target.files].forEach(file=>{
     const reader=new FileReader();
     reader.onload=()=>{
-      users[currentUser].projects.push({name:file.name,data:reader.result});
-      localStorage.setItem('users',JSON.stringify(users));
+      projects.push({name:file.name,data:reader.result});
+      localStorage.setItem('projects',JSON.stringify(projects));
       render();
     };
     reader.readAsDataURL(file);
@@ -138,7 +101,7 @@ fileInput.onchange=e=>{
 function render(){
   const grid=document.getElementById('grid');
   grid.innerHTML='';
-  users[currentUser].projects.forEach((p,i)=>{
+  projects.forEach((p,i)=>{
     const div=document.createElement('div');
     div.className='card';
     div.innerHTML=`<img src="${p.data}"><h4>${p.name}</h4>
@@ -149,19 +112,20 @@ function render(){
 }
 
 function deleteProject(i){
-  users[currentUser].projects.splice(i,1);
-  localStorage.setItem('users',JSON.stringify(users));
+  projects.splice(i,1);
+  localStorage.setItem('projects',JSON.stringify(projects));
   render();
 }
 
 function openProject(i){
-  const p=users[currentUser].projects[i];
+  const p=projects[i];
   modal.classList.remove('hidden');
   modalContent.innerHTML=`<h2>${p.name}</h2><img src="${p.data}" style="width:100%">`;
 }
 
 modal.onclick=()=>modal.classList.add('hidden');
 
+render();
 </script>
 
 </body>
