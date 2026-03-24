@@ -3,32 +3,44 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Interactive Portfolio</title>
+<title>OneNote Style Portfolio</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif}
-body{background:#0a0a0a;color:#fff;display:flex}
+body{background:#0a0a0a;color:#fff;display:flex;height:100vh;overflow:hidden}
 
 /* Sidebar */
-.sidebar{width:220px;background:#000;height:100vh;padding:20px;border-right:1px solid rgba(255,0,0,0.2);position:fixed}
+.sidebar{width:220px;background:#000;padding:20px;border-right:1px solid rgba(255,0,0,0.2);display:flex;flex-direction:column}
 .sidebar h2{color:#ff1a1a;margin-bottom:20px}
-.sidebar a{display:block;color:#ccc;margin:15px 0;text-decoration:none}
+.sidebar a{color:#ccc;margin:10px 0;text-decoration:none}
 .sidebar a:hover{color:#ff1a1a}
 
-/* Main */
-.main{margin-left:220px;width:100%}
+/* Main content */
+.main{flex:1;display:flex;flex-direction:column}
 header{padding:20px;border-bottom:1px solid rgba(255,0,0,0.2)}
-section{padding:30px}
-.btn{background:#ff1a1a;border:none;padding:10px 15px;border-radius:20px;color:#fff;cursor:pointer}
+.btn{background:#ff1a1a;border:none;padding:10px 15px;border-radius:20px;color:#fff;cursor:pointer;margin:5px}
 .btn:hover{opacity:0.8}
+
+/* Projects page */
+.projects-page{padding:20px;overflow-y:auto;flex:1}
 .projects{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px}
 .card{background:#111;padding:15px;border-radius:10px;transition:.3s;cursor:pointer}
 .card:hover{transform:scale(1.05);box-shadow:0 0 15px red}
 .card img{width:100%;border-radius:10px}
+
+/* Editor page (OneNote style) */
+.editor-page{flex:1;display:flex;flex-direction:column}
+.editor-header{display:flex;align-items:center;padding:10px;background:#111;border-bottom:1px solid rgba(255,0,0,0.2)}
+.editor-header input{flex:1;padding:10px;margin-right:10px;background:#222;border:none;color:#fff;border-radius:5px}
+.editor-header button{margin-left:5px}
+.editor-body{flex:1;display:flex;overflow:hidden}
+.notebook-sidebar{width:200px;background:#111;padding:10px;border-right:1px solid rgba(255,0,0,0.2);overflow-y:auto}
+.notebook-sidebar h4{margin-bottom:10px}
+.note-tab{padding:8px;margin-bottom:5px;background:#222;border-radius:5px;cursor:pointer}
+.note-tab.active{background:#ff1a1a}
+.note-content{flex:1;padding:20px;overflow-y:auto}
+.note-content textarea{width:100%;height:100%;background:#0a0a0a;border:none;color:#fff;font-size:16px;resize:none}
 .hidden{display:none}
-.edit-page{padding:30px}
-.edit-page input, .edit-page textarea{width:100%;margin:10px 0;padding:10px;background:#111;border:none;color:#fff;border-radius:8px}
-.edit-page img{max-width:100%;border-radius:10px;margin-bottom:10px}
 </style>
 </head>
 <body>
@@ -49,24 +61,31 @@ section{padding:30px}
 <p>This is your personal portfolio system</p>
 </section>
 
-<section id="projects" class="hidden">
+<section id="projects" class="hidden projects-page">
 <h2>Projects</h2>
 <input type="file" id="fileInput" multiple>
 <div class="projects" id="grid"></div>
 </section>
 
-<section id="editPage" class="hidden edit-page">
-<h2>Edit Project</h2>
-<img id="editImage">
-<input type="text" id="editTitle" placeholder="Project Title">
-<textarea id="editDescription" rows="5" placeholder="Project Description"></textarea>
-<button class="btn" onclick="saveEdit()">Save</button>
-<button class="btn" onclick="cancelEdit()">Cancel</button>
+<section id="editorPage" class="hidden editor-page">
+<div class="editor-header">
+<input id="noteTitle" placeholder="Enter Note Title">
+<button class="btn" onclick="saveNote()">Save</button>
+<button class="btn" onclick="exitEditor()">Back</button>
+</div>
+<div class="editor-body">
+<div class="notebook-sidebar" id="noteTabs"></div>
+<div class="note-content">
+<textarea id="noteText" placeholder="Write your notes here..."></textarea>
+</div>
+</div>
 </section>
 
 <script>
 let projects=JSON.parse(localStorage.getItem('projects')||'[]');
-let currentEditIndex=null;
+let notes={}; // Each project can have multiple notes
+let currentProjectIndex=null;
+let currentNoteIndex=null;
 
 function showPage(page){
   document.querySelectorAll('section').forEach(s=>s.classList.add('hidden'));
@@ -77,52 +96,78 @@ fileInput.onchange=e=>{
   [...e.target.files].forEach(file=>{
     const reader=new FileReader();
     reader.onload=()=>{
-      projects.push({name:file.name,data:reader.result,title:'',description:''});
+      projects.push({name:file.name,data:reader.result});
       localStorage.setItem('projects',JSON.stringify(projects));
-      render();
+      openProjectEditor(projects.length-1);
     };
     reader.readAsDataURL(file);
   });
 };
 
-function render(){
+function renderProjects(){
   const grid=document.getElementById('grid');
   grid.innerHTML='';
   projects.forEach((p,i)=>{
     const div=document.createElement('div');
     div.className='card';
-    div.innerHTML=`<img src="${p.data}"><h4>${p.title||p.name}</h4>`;
-    div.onclick=()=>openEdit(i);
+    div.innerHTML=`<img src="${p.data}"><h4>${p.name}</h4>`;
+    div.onclick=()=>openProjectEditor(i);
     grid.appendChild(div);
   });
 }
 
-function openEdit(i){
-  currentEditIndex=i;
-  const p=projects[i];
-  document.getElementById('editImage').src=p.data;
-  document.getElementById('editTitle').value=p.title;
-  document.getElementById('editDescription').value=p.description;
-  showPage('editPage');
+function openProjectEditor(i){
+  currentProjectIndex=i;
+  showPage('editorPage');
+  if(!notes[i]) notes[i]=[];
+  renderNotes();
 }
 
-function saveEdit(){
-  const title=document.getElementById('editTitle').value;
-  const description=document.getElementById('editDescription').value;
-  projects[currentEditIndex].title=title;
-  projects[currentEditIndex].description=description;
-  localStorage.setItem('projects',JSON.stringify(projects));
+function renderNotes(){
+  const sidebar=document.getElementById('noteTabs');
+  sidebar.innerHTML='';
+  notes[currentProjectIndex].forEach((n,index)=>{
+    const div=document.createElement('div');
+    div.className='note-tab'+(index===currentNoteIndex?' active':'');
+    div.innerText=n.title||`Note ${index+1}`;
+    div.onclick=()=>openNote(index);
+    sidebar.appendChild(div);
+  });
+  if(currentNoteIndex===null && notes[currentProjectIndex].length>0) currentNoteIndex=0;
+  if(currentNoteIndex!==null) loadNote();
+}
+
+function openNote(index){
+  currentNoteIndex=index;
+  renderNotes();
+}
+
+function loadNote(){
+  const note=notes[currentProjectIndex][currentNoteIndex];
+  document.getElementById('noteTitle').value=note.title;
+  document.getElementById('noteText').value=note.content;
+}
+
+function saveNote(){
+  const title=document.getElementById('noteTitle').value;
+  const content=document.getElementById('noteText').value;
+  if(currentNoteIndex===null){
+    notes[currentProjectIndex].push({title,content});
+    currentNoteIndex=notes[currentProjectIndex].length-1;
+  }else{
+    notes[currentProjectIndex][currentNoteIndex]={title,content};
+  }
+  renderNotes();
+}
+
+function exitEditor(){
+  currentNoteIndex=null;
   showPage('projects');
-  render();
+  renderProjects();
 }
 
-function cancelEdit(){
-  showPage('projects');
-}
-
-render();
+renderProjects();
 </script>
 
 </body>
 </html>
-
