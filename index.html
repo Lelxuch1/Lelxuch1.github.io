@@ -3,18 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Portfolio App</title>
+<title>Interactive Portfolio</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif}
 body{background:#0a0a0a;color:#fff;display:flex}
 
 /* Sidebar */
-.sidebar{
-  width:220px;background:#000;height:100vh;padding:20px;
-  border-right:1px solid rgba(255,0,0,0.2);
-  position:fixed
-}
+.sidebar{width:220px;background:#000;height:100vh;padding:20px;border-right:1px solid rgba(255,0,0,0.2);position:fixed}
 .sidebar h2{color:#ff1a1a;margin-bottom:20px}
 .sidebar a{display:block;color:#ccc;margin:15px 0;text-decoration:none}
 .sidebar a:hover{color:#ff1a1a}
@@ -22,75 +18,66 @@ body{background:#0a0a0a;color:#fff;display:flex}
 /* Main */
 .main{margin-left:220px;width:100%}
 header{padding:20px;border-bottom:1px solid rgba(255,0,0,0.2)}
-
 section{padding:30px}
-
 .btn{background:#ff1a1a;border:none;padding:10px 15px;border-radius:20px;color:#fff;cursor:pointer}
 .btn:hover{opacity:0.8}
-
-/* Projects */
 .projects{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px}
-.card{background:#111;padding:15px;border-radius:10px;transition:.3s}
+.card{background:#111;padding:15px;border-radius:10px;transition:.3s;cursor:pointer}
 .card:hover{transform:scale(1.05);box-shadow:0 0 15px red}
 .card img{width:100%;border-radius:10px}
-
-/* Modal */
-.modal{
-  position:fixed;top:0;left:0;width:100%;height:100%;
-  background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center
-}
-.modal-content{background:#111;padding:20px;border-radius:10px;max-width:500px;width:90%}
 .hidden{display:none}
-
+.edit-page{padding:30px}
+.edit-page input, .edit-page textarea{width:100%;margin:10px 0;padding:10px;background:#111;border:none;color:#fff;border-radius:8px}
+.edit-page img{max-width:100%;border-radius:10px;margin-bottom:10px}
 </style>
 </head>
 <body>
 
 <div class="sidebar">
-  <h2>PortfolioX</h2>
-  <a href="#" onclick="showPage('dashboard')">Dashboard</a>
-  <a href="#" onclick="showPage('projects')">Projects</a>
+<h2>PortfolioX</h2>
+<a href="#" onclick="showPage('dashboard')">Dashboard</a>
+<a href="#" onclick="showPage('projects')">Projects</a>
 </div>
 
 <div class="main">
 <header>
-  <h3>My Portfolio</h3>
+<h3>My Portfolio</h3>
 </header>
 
-<!-- DASHBOARD -->
 <section id="dashboard">
-  <h2>Welcome</h2>
-  <p>This is your personal portfolio system</p>
+<h2>Welcome</h2>
+<p>This is your personal portfolio system</p>
 </section>
 
-<!-- PROJECTS -->
 <section id="projects" class="hidden">
-  <h2>Projects</h2>
-  <input type="file" id="fileInput" multiple>
-  <div class="projects" id="grid"></div>
+<h2>Projects</h2>
+<input type="file" id="fileInput" multiple>
+<div class="projects" id="grid"></div>
 </section>
 
-</div>
-
-<!-- MODAL -->
-<div id="modal" class="modal hidden">
-  <div class="modal-content" id="modalContent"></div>
-</div>
+<section id="editPage" class="hidden edit-page">
+<h2>Edit Project</h2>
+<img id="editImage">
+<input type="text" id="editTitle" placeholder="Project Title">
+<textarea id="editDescription" rows="5" placeholder="Project Description"></textarea>
+<button class="btn" onclick="saveEdit()">Save</button>
+<button class="btn" onclick="cancelEdit()">Cancel</button>
+</section>
 
 <script>
 let projects=JSON.parse(localStorage.getItem('projects')||'[]');
+let currentEditIndex=null;
 
 function showPage(page){
   document.querySelectorAll('section').forEach(s=>s.classList.add('hidden'));
   document.getElementById(page).classList.remove('hidden');
 }
 
-// Upload
 fileInput.onchange=e=>{
   [...e.target.files].forEach(file=>{
     const reader=new FileReader();
     reader.onload=()=>{
-      projects.push({name:file.name,data:reader.result});
+      projects.push({name:file.name,data:reader.result,title:'',description:''});
       localStorage.setItem('projects',JSON.stringify(projects));
       render();
     };
@@ -104,29 +91,38 @@ function render(){
   projects.forEach((p,i)=>{
     const div=document.createElement('div');
     div.className='card';
-    div.innerHTML=`<img src="${p.data}"><h4>${p.name}</h4>
-    <button onclick="openProject(${i})">Open</button>
-    <button onclick="deleteProject(${i})">Delete</button>`;
+    div.innerHTML=`<img src="${p.data}"><h4>${p.title||p.name}</h4>`;
+    div.onclick=()=>openEdit(i);
     grid.appendChild(div);
   });
 }
 
-function deleteProject(i){
-  projects.splice(i,1);
+function openEdit(i){
+  currentEditIndex=i;
+  const p=projects[i];
+  document.getElementById('editImage').src=p.data;
+  document.getElementById('editTitle').value=p.title;
+  document.getElementById('editDescription').value=p.description;
+  showPage('editPage');
+}
+
+function saveEdit(){
+  const title=document.getElementById('editTitle').value;
+  const description=document.getElementById('editDescription').value;
+  projects[currentEditIndex].title=title;
+  projects[currentEditIndex].description=description;
   localStorage.setItem('projects',JSON.stringify(projects));
+  showPage('projects');
   render();
 }
 
-function openProject(i){
-  const p=projects[i];
-  modal.classList.remove('hidden');
-  modalContent.innerHTML=`<h2>${p.name}</h2><img src="${p.data}" style="width:100%">`;
+function cancelEdit(){
+  showPage('projects');
 }
-
-modal.onclick=()=>modal.classList.add('hidden');
 
 render();
 </script>
 
 </body>
 </html>
+
